@@ -327,15 +327,78 @@ function setupLightbox() {
 }
 
 /* ---- Musik ---- */
+/* Kotak musik "Happy Birthday" yang dimainkan langsung oleh browser.
+   Bila CONFIG.musik diisi file mp3, file itu yang dipakai. */
+function musicBox() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  let ctx, master, timer, nextLoop = 0, playing = false;
+  const BEAT = 0.6;
+  const F = { G2: 98, F2: 87.31, C3: 130.81, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99 };
+  const melody = [
+    ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2],
+    ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2],
+    ['G4', .75], ['G4', .25], ['G5', 1], ['E5', 1], ['C5', 1], ['B4', 1], ['A4', 1],
+    ['F5', .75], ['F5', .25], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3],
+  ];
+  const bass = [[1, 'C3'], [4, 'G2'], [7, 'G2'], [10, 'C3'], [13, 'C3'], [16, 'F2'], [19, 'C3'], [21, 'G2'], [22, 'C3']];
+  const LOOP = 28;
+
+  function tone(freq, t, len, vol, bell = true) {
+    [[1, 'sine', 1], [2, 'sine', .35], [3.01, 'triangle', bell ? .12 : 0]].forEach(([m, type, g]) => {
+      if (!g) return;
+      const o = ctx.createOscillator(), v = ctx.createGain();
+      o.type = type; o.frequency.value = freq * m;
+      v.gain.setValueAtTime(0.0001, t);
+      v.gain.exponentialRampToValueAtTime(vol * g, t + 0.012);
+      v.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      o.connect(v).connect(master); o.start(t); o.stop(t + len + 0.05);
+    });
+  }
+  function scheduleLoop(start) {
+    let beat = 0;
+    melody.forEach(([n, d]) => { tone(F[n], start + beat * BEAT, Math.max(1.4, d * BEAT * 1.6), 0.22); beat += d; });
+    bass.forEach(([b, n]) => tone(F[n], start + b * BEAT, BEAT * 2.6, 0.13, false));
+  }
+  function tick() {
+    while (nextLoop < ctx.currentTime + 1) { scheduleLoop(nextLoop); nextLoop += LOOP * BEAT; }
+  }
+  return {
+    play() {
+      if (!ctx) {
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = 0.55;
+        const delay = ctx.createDelay(); delay.delayTime.value = 0.28;
+        const fb = ctx.createGain(); fb.gain.value = 0.22;
+        master.connect(ctx.destination); master.connect(delay); delay.connect(fb).connect(delay); fb.connect(ctx.destination);
+        nextLoop = ctx.currentTime + 0.2;
+      }
+      ctx.resume(); playing = true;
+      tick(); clearInterval(timer); timer = setInterval(tick, 250);
+    },
+    pause() { playing = false; clearInterval(timer); if (ctx) ctx.suspend(); },
+    get paused() { return !playing; },
+  };
+}
+
 function setupMusic() {
-  if (!CONFIG.musik) return null;
-  const a = $('#bgm'), btn = $('#musicBtn');
-  a.src = CONFIG.musik; btn.hidden = false;
-  btn.addEventListener('click', () => (a.paused ? a.play() : a.pause()));
-  a.addEventListener('play', () => btn.classList.add('playing'));
-  a.addEventListener('pause', () => btn.classList.remove('playing'));
-  a.addEventListener('error', () => { btn.hidden = true; });
-  return a;
+  const btn = $('#musicBtn');
+  let player;
+  if (CONFIG.musik) {
+    player = $('#bgm'); player.src = CONFIG.musik;
+    player.addEventListener('error', () => { btn.hidden = true; });
+  } else {
+    player = musicBox();
+    if (!player) return null;
+  }
+  const sync = () => btn.classList.toggle('playing', !player.paused);
+  btn.hidden = false;
+  btn.addEventListener('click', () => {
+    const r = player.paused ? player.play() : player.pause();
+    if (r && r.catch) r.catch(() => {});
+    setTimeout(sync, 50);
+  });
+  return { play() { const r = player.play(); if (r && r.catch) r.catch(() => {}); setTimeout(sync, 50); } };
 }
 
 /* ---- Angka umur berjalan ---- */
@@ -359,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('#openBtn').addEventListener('click', function () {
     this.classList.add('open');
-    if (audio) audio.play().catch(() => {});
+    if (audio) audio.play();
     setTimeout(() => {
       $('#main').hidden = false;
       $('#opening').classList.add('gone');

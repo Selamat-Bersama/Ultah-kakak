@@ -31,7 +31,7 @@ Semua ada di bagian **CONFIG** paling atas file `script.js`:
 - `nama` di masing-masing adik (`'Adik Pertama'`, `'Adik Kedua'`) → ganti dengan nama asli.
 - `pesan` → isi surat (satu baris = satu paragraf).
 - `tanggal` → contoh `'12 November 2026'`.
-- `musik` → taruh mp3 di folder `musik/`, lalu isi `'musik/lagu.mp3'`.
+- Musik: secara bawaan website memutar lagu "Happy Birthday" versi kotak musik (tanpa file). Kalau ingin lagu lain, taruh mp3 di folder `musik/`, lalu isi `musik: 'musik/lagu.mp3'`.
 - Foto & caption bisa ditambah/dikurangi di daftar `foto` dan `galeri`.
 
 ## Online gratis dengan GitHub Pages
