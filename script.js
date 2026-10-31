@@ -7,13 +7,22 @@ const CONFIG = {
   umur: 29,
   // Tanggal ulang tahun (opsional), contoh: '12 November 2026'. Kosongkan bila tidak ingin ditampilkan.
   tanggal: '',
-  // Musik latar (opsional): taruh file mp3 di folder "musik/" lalu tulis namanya, contoh: 'musik/lagu.mp3'
+
+  // ---------- MUSIK LATAR ----------
+  // ID video YouTube (bagian setelah youtu.be/ ...). Contoh link: https://youtu.be/pVfo6JPYmFY
+  youtube: 'pVfo6JPYmFY',
+  musikMulaiDetik: 0,   // mulai lagu dari detik ke-berapa
+  volume: 70,           // 0–100
+  // Cadangan bila video YouTube tidak bisa diputar: taruh mp3 di folder "musik/", contoh: 'musik/lagu.mp3'
   musik: '',
+
+  // ---------- SLIDE OTOMATIS ----------
+  // Kecepatan membaca (kata per menit). Makin kecil = slide makin lama.
+  kecepatanBaca: 150,
 
   // ---------- UCAPAN DARI AYAH ----------
   ayah: {
     label: 'Dari Ayah',
-    icon: '👨🏻',
     judul: 'Untuk Putri Kecil Ayah',
     sapaan: 'Novi, anakku sayang,',
     pesan: [
@@ -23,15 +32,14 @@ const CONFIG = {
     ],
     tandaTangan: 'Ayah',
     foto: [
-      { src: 'foto/ayah-1.jpg', caption: 'Joget bareng Ayah', pos: '50% 30%' },
-      { src: 'foto/ayah-2.jpg', caption: 'Putri kecil Ayah' },
+      { src: 'foto/ayah-1.jpg', caption: 'Bersama Ayah', pos: '50% 30%' },
+      { src: 'foto/ayah-2.jpg', caption: 'Putri kecil Ayah', pos: '50% 40%' },
     ],
   },
 
   // ---------- UCAPAN DARI MAMA ----------
   mama: {
     label: 'Dari Mama',
-    icon: '👩🏻',
     judul: 'Untuk Belahan Hati Mama',
     sapaan: 'Sayangku Novi,',
     pesan: [
@@ -42,14 +50,13 @@ const CONFIG = {
     tandaTangan: 'Mama',
     foto: [
       { src: 'foto/mama-1.jpg', caption: 'Mama & Novi', pos: '50% 40%' },
-      { src: 'foto/mama-2.jpg', caption: 'Ulang tahun ke-4' },
+      { src: 'foto/mama-2.jpg', caption: 'Ulang tahun ke-4', pos: '50% 35%' },
     ],
   },
 
   // ---------- UCAPAN DARI ADIK-ADIK ----------
   adik: {
     label: 'Dari Adik-adik',
-    icon: '👦🏻👦🏻',
     judul: 'Untuk Kakak Terbaik Kami',
     pengantar: 'Dua adik laki-laki yang mungkin jarang bilang sayang, tapi kali ini mau jujur.',
     daftar: [
@@ -61,9 +68,7 @@ const CONFIG = {
           'Mungkin aku jarang ngomong begini, tapi aku bangga punya kakak kayak kamu. Semoga makin sukses, makin bahagia, dan semua yang Kakak doakan cepat terkabul. Love you, Kak!',
         ],
         tandaTangan: 'Adikmu',
-        foto: [
-          { src: 'foto/adik1-1.jpg', caption: 'Dirangkul Kakak', pos: '50% 62%' },
-        ],
+        foto: [{ src: 'foto/adik1-1.jpg', caption: 'Dirangkul Kakak', pos: '50% 62%' }],
       },
       {
         nama: 'Adik Kedua', // ← ganti dengan nama adik kedua
@@ -73,9 +78,7 @@ const CONFIG = {
           'Semoga di umur 29 ini Kakak selalu sehat, rezekinya lancar, dikelilingi orang-orang baik, dan selalu bahagia. Jangan lupa traktirannya ya, Kak!',
         ],
         tandaTangan: 'Adik bungsumu',
-        foto: [
-          { src: 'foto/adik2-2.jpg', caption: 'Kakak & Adik', pos: '50% 45%' },
-        ],
+        foto: [{ src: 'foto/adik2-2.jpg', caption: 'Kakak & Adik', pos: '50% 45%' }],
       },
     ],
   },
@@ -96,350 +99,409 @@ const CONFIG = {
    KODE — tidak perlu diubah
    ========================================================= */
 const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 
-/* ---- Foto dengan cadangan elegan bila file belum ada ---- */
-function photoHTML(src, label, pos) {
-  return `<img class="photo" loading="lazy"${pos ? ` style="object-position:${esc(pos)}"` : ''} src="${esc(src)}" alt="${esc(label || '')}" data-label="${esc(label || '')}">`;
-}
-function attachFallbacks(root = document) {
-  root.querySelectorAll('img.photo').forEach((img) => {
-    if (img.dataset.src && !img.src) img.src = img.dataset.src;
-    const fail = () => {
-      const fb = document.createElement('div');
-      fb.className = 'photo-fallback';
-      fb.innerHTML = `<div><b>${esc(CONFIG.panggilan[0])}</b>${esc(img.dataset.label || 'Foto')}<br><small style="opacity:.6">${esc(img.getAttribute('src') || '')}</small></div>`;
-      img.replaceWith(fb);
-    };
-    if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) fail();
-    else img.addEventListener('error', fail, { once: true });
-  });
-}
+/* ---------- Pembuat slide ---------- */
+const img = (f, cls = '') =>
+  `<img class="${cls}" src="${esc(f.src)}" alt="${esc(f.caption || '')}" style="object-position:${esc(f.pos || '50% 30%')}" onerror="this.closest('figure')?.classList.add('missing')">`;
 
-/* ---- Bangun bagian ucapan ---- */
-function letterHTML({ sapaan, pesan, tandaTangan, sub }) {
+const words = (text) => String(text).trim().split(/\s+/).map((w, i) => `<span class="w" style="--i:${i}">${esc(w)}</span>`).join(' ');
+
+function slideHero() {
   return `
-    <article class="letter reveal" data-typing>
-      <p class="greeting">${esc(sapaan)}</p>
-      ${pesan.map((p) => `<p data-text="${esc(p)}">${esc(p)}</p>`).join('')}
-      <p class="sign">${esc(tandaTangan)}<small>${esc(sub || 'dengan penuh cinta')}</small></p>
-    </article>`;
-}
-function photosHTML(list) {
-  return `<div class="msg-photos reveal">${list.map((f) => `
-      <figure class="polaroid" data-full="${esc(f.src)}" data-cap="${esc(f.caption)}">
-        <div class="ph">${photoHTML(f.src, f.caption, f.pos)}</div>
-        <figcaption>${esc(f.caption)}</figcaption>
-      </figure>`).join('')}</div>`;
-}
-function buildMessages() {
-  const { ayah, mama, adik } = CONFIG;
-  let html = '';
-  [['ayah', ayah, 'Bab Satu'], ['mama', mama, 'Bab Dua']].forEach(([key, d, bab]) => {
-    html += `
-    <section class="message-section theme-${key}">
-      <p class="chapter-label reveal">${bab} · ${esc(d.label)}</p>
-      <div class="from-icon reveal">${d.icon}</div>
-      <h3 class="section-title reveal">${esc(d.judul)}</h3>
-      ${photosHTML(d.foto)}
-      ${letterHTML({ ...d, sub: `${d.tandaTangan} yang selalu menyayangimu` })}
-    </section>`;
-  });
-  html += `
-    <section class="message-section theme-adik">
-      <p class="chapter-label reveal">Bab Tiga · ${esc(adik.label)}</p>
-      <div class="from-icon reveal">${adik.icon}</div>
-      <h3 class="section-title reveal">${esc(adik.judul)}</h3>
-      <p class="section-sub reveal">${esc(adik.pengantar)}</p>
-      <div class="siblings">
-        ${adik.daftar.map((s) => `
-          <div class="sib-card">
-            <h4 class="sib-name reveal">${esc(s.nama)}</h4>
-            ${photosHTML(s.foto)}
-            ${letterHTML({ ...s, sub: s.nama })}
-          </div>`).join('')}
+  <section class="slide s-hero" data-chapter="Pembuka" data-photos="1">
+    <figure class="hero-photo rv" style="--d:.1s">${img({ src: 'foto/novi-utama.jpg', caption: CONFIG.panggilan, pos: '50% 25%' })}</figure>
+    <div class="hero-copy">
+      <p class="eyebrow rv" style="--d:.5s" data-read>${esc(CONFIG.tanggal || 'Hari istimewamu')}</p>
+      <h1 class="display rv" style="--d:.7s" data-read><em>Selamat</em> Ulang Tahun</h1>
+      <p class="hero-name rv" style="--d:1s" data-read>${esc(CONFIG.nama)}</p>
+      <div class="age rv" style="--d:1.25s">
+        <span class="age-num" data-count="${CONFIG.umur}">${CONFIG.umur}</span>
+        <span class="age-cap">tahun</span>
       </div>
-    </section>`;
-  $('#messages').innerHTML = html;
-}
-function buildGallery() {
-  $('#gallery').innerHTML = CONFIG.galeri.map((f) => `
-    <figure class="g-item reveal" data-full="${esc(f.src)}" data-cap="${esc(f.caption)}">
-      ${photoHTML(f.src, f.caption)}
-      <figcaption>${esc(f.caption)}</figcaption>
-    </figure>`).join('');
+      <p class="hero-sub rv" style="--d:1.6s" data-read>Sebuah kado kecil, dari keluarga yang selalu menyayangimu.</p>
+    </div>
+  </section>`;
 }
 
-/* ---- Efek mengetik pada surat ---- */
-function typeLetter(letter) {
-  if (letter.dataset.typed) return;
-  letter.dataset.typed = '1';
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const paras = [...letter.querySelectorAll('p[data-text]')];
-  paras.forEach((p) => { p.style.minHeight = p.offsetHeight + 'px'; p.textContent = ''; });
-  let i = 0;
-  const next = () => {
-    if (i >= paras.length) return;
-    const p = paras[i], text = p.dataset.text;
-    let n = 0;
-    p.classList.add('typing');
-    const t = setInterval(() => {
-      n += 2;
-      p.textContent = text.slice(0, n);
-      if (n >= text.length) { clearInterval(t); p.classList.remove('typing'); p.style.minHeight = ''; i++; setTimeout(next, 250); }
-    }, 22);
-  };
-  next();
+function slideWish() {
+  return `
+  <section class="slide s-wish" data-chapter="Permohonan" data-kind="wish">
+    <div class="wish-glow"></div>
+    <p class="eyebrow rv" style="--d:.2s">Sebelum kita mulai</p>
+    <div class="wish-text">
+      <h2 class="title rv wish-before" style="--d:.4s" data-read>Buat satu permohonan</h2>
+      <p class="lead rv wish-before" style="--d:.7s" data-read>Pejamkan mata sejenak, ucapkan doamu dalam hati, lalu tiup lilinnya.</p>
+      <h2 class="title wish-after">Aamiin.</h2>
+      <p class="lead wish-after">Semoga semua doamu dikabulkan Allah SWT, di waktu terbaik-Nya.</p>
+    </div>
+    <button class="candle-wrap rv" style="--d:1s" id="candleBtn" aria-label="Tiup lilin">
+      <span class="halo"></span>
+      <span class="flame"><i></i></span>
+      <span class="wick"></span>
+      <span class="candle"></span>
+      <span class="holder"></span>
+      <span class="smoke"></span>
+    </button>
+    <p class="tap-hint rv" style="--d:1.4s">Ketuk lilin untuk meniup</p>
+  </section>`;
 }
 
-/* ---- Muncul saat di-scroll ---- */
-function setupReveal() {
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      e.target.classList.add('in');
-      if (e.target.matches('[data-typing]')) setTimeout(() => typeLetter(e.target), 500);
-      io.unobserve(e.target);
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+function slideChapter(n, d, intro) {
+  const photos = d.foto || [];
+  return `
+  <section class="slide s-chapter" data-chapter="${esc(d.label)}" data-photos="${photos.length}">
+    <p class="eyebrow rv" style="--d:.2s" data-read>Bab ${ROMAN[n]} · ${esc(d.label)}</p>
+    <h2 class="title rv" style="--d:.45s" data-read>${esc(d.judul)}</h2>
+    ${intro ? `<p class="lead rv" style="--d:.7s" data-read>${esc(intro)}</p>` : ''}
+    <div class="frames frames-${photos.length}">
+      ${photos.map((f, i) => `
+        <figure class="frame rv" style="--d:${0.9 + i * 0.25}s">${img(f)}<figcaption>${esc(f.caption)}</figcaption></figure>`).join('')}
+    </div>
+  </section>`;
 }
 
-/* ---- Confetti ---- */
-const confetti = (() => {
-  const c = $('#confetti'), ctx = c.getContext('2d');
-  let parts = [], raf = null;
-  const colors = ['#e8a0b4', '#e6c27a', '#f5dfa8', '#b98ad3', '#ffffff', '#f3b9c8', '#8fd3e8'];
-  const resize = () => { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; };
-  addEventListener('resize', resize); resize();
-  function burst(count = 160, x = innerWidth / 2, y = innerHeight / 3) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 9;
-      parts.push({
-        x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 5,
-        w: 6 + Math.random() * 6, h: 4 + Math.random() * 8,
-        r: Math.random() * 6, vr: (Math.random() - .5) * .3,
-        color: colors[(Math.random() * colors.length) | 0], life: 0,
-        shape: Math.random() < .25 ? 'circle' : 'rect',
-      });
-    }
-    if (!raf) loop();
-  }
-  function rain(count = 120) {
-    for (let i = 0; i < count; i++) {
-      parts.push({
-        x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * .6,
-        vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3,
-        w: 6 + Math.random() * 6, h: 4 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .2,
-        color: colors[(Math.random() * colors.length) | 0], life: 0, shape: 'rect',
-      });
-    }
-    if (!raf) loop();
-  }
-  function loop() {
+function slidePerson(s, chapter) {
+  return `
+  <section class="slide s-person" data-chapter="${esc(chapter)}" data-photos="${s.foto.length}">
+    <figure class="frame tall rv" style="--d:.2s">${img(s.foto[0])}<figcaption>${esc(s.foto[0].caption)}</figcaption></figure>
+    <p class="eyebrow rv" style="--d:.6s">Dari</p>
+    <h2 class="title rv" style="--d:.8s" data-read>${esc(s.nama)}</h2>
+  </section>`;
+}
+
+function slidesLetter(d, chapter, bg) {
+  const n = d.pesan.length;
+  return d.pesan.map((p, i) => `
+  <section class="slide s-letter" data-chapter="${esc(chapter)}">
+    ${bg ? `<div class="bg" style="background-image:url('${esc(bg)}')"></div>` : ''}
+    <div class="letter">
+      ${i === 0 ? `<p class="greeting rv" style="--d:.15s" data-read>${esc(d.sapaan)}</p>` : '<span class="quote rv" style="--d:.1s">&ldquo;</span>'}
+      <p class="para" data-read data-words>${words(p)}</p>
+      ${i === n - 1 ? `<p class="sign rv" data-late>— ${esc(d.tandaTangan)}</p>` : ''}
+      <p class="pager rv" style="--d:.3s">${i + 1} / ${n}</p>
+    </div>
+  </section>`).join('');
+}
+
+function slidesGallery() {
+  const g = CONFIG.galeri;
+  return `
+  <section class="slide s-chapter s-gallery-intro" data-chapter="Kenangan">
+    <p class="eyebrow rv" style="--d:.2s" data-read>Bab ${ROMAN[3]} · Kenangan</p>
+    <h2 class="title rv" style="--d:.45s" data-read>Potret Perjalananmu</h2>
+    <p class="lead rv" style="--d:.75s" data-read>Setiap foto menyimpan cerita, dan setiap cerita ada kamu di dalamnya.</p>
+  </section>` + g.map((f, i) => `
+  <section class="slide s-photo" data-chapter="Kenangan" data-photos="1">
+    <div class="bg blur" style="background-image:url('${esc(f.src)}')"></div>
+    <figure class="photo-main">${img(f, 'kb')}</figure>
+    <div class="photo-cap">
+      <span class="idx rv" style="--d:.5s">${String(i + 1).padStart(2, '0')} — ${String(g.length).padStart(2, '0')}</span>
+      <p class="rv" style="--d:.7s" data-read>${esc(f.caption)}</p>
+    </div>
+  </section>`).join('');
+}
+
+function slideClosing() {
+  return `
+  <section class="slide s-closing" data-chapter="Penutup" data-kind="closing">
+    <span class="rule rv" style="--d:.2s"></span>
+    <h2 class="display rv" style="--d:.4s" data-read>Kami sayang kamu, <em>${esc(CONFIG.panggilan)}</em></h2>
+    <p class="lead rv" style="--d:.8s" data-read>Apa pun yang terjadi, sejauh apa pun langkahmu, rumah ini selalu menunggumu pulang. Selamat ulang tahun yang ke-${CONFIG.umur}.</p>
+    <p class="sign rv" style="--d:1.2s" data-read>Ayah, Mama &amp; Adik-adik</p>
+    <button class="ghost-btn rv" style="--d:1.6s" id="replayBtn">Putar dari awal</button>
+    <p class="foot rv" style="--d:1.8s">Dibuat dengan cinta · ${new Date().getFullYear()}</p>
+  </section>`;
+}
+
+function buildDeck() {
+  const { ayah, mama, adik } = CONFIG;
+  let html = slideHero() + slideWish();
+  html += slideChapter(0, ayah) + slidesLetter(ayah, ayah.label, ayah.foto[0]?.src);
+  html += slideChapter(1, mama) + slidesLetter(mama, mama.label, mama.foto[0]?.src);
+  html += slideChapter(2, { ...adik, foto: adik.daftar.map((s) => s.foto[0]) }, adik.pengantar);
+  adik.daftar.forEach((s) => {
+    html += slidePerson(s, adik.label) + slidesLetter(s, adik.label, s.foto[0]?.src);
+  });
+  html += slidesGallery() + slideClosing();
+  $('#deck').innerHTML = html;
+
+  // Atur kecepatan munculnya kata, supaya paragraf panjang tetap muncul ≤ 2 detik
+  $$('.para[data-words]').forEach((p) => {
+    const n = p.querySelectorAll('.w').length;
+    const step = Math.min(45, 2000 / n);
+    p.style.setProperty('--step', step + 'ms');
+    p.dataset.reveal = Math.round(400 + n * step + 700);
+    const sign = p.parentElement.querySelector('[data-late]');
+    if (sign) sign.style.setProperty('--d', (+p.dataset.reveal + 200) / 1000 + 's');
+  });
+}
+
+/* ---------- Hitung lama tampil tiap slide (berdasarkan waktu baca) ---------- */
+function slideDuration(slide) {
+  const text = $$('[data-read]', slide).map((e) => e.textContent).join(' ');
+  const n = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const readMs = (n / CONFIG.kecepatanBaca) * 60000;           // waktu membaca
+  const para = $('.para', slide);
+  const revealMs = para ? +para.dataset.reveal : 1600;          // waktu animasi muncul
+  const photoMs = (+slide.dataset.photos || 0) * 1400;          // waktu menikmati foto
+  const breathe = 1800;                                          // jeda napas sebelum pindah
+  let ms = revealMs + readMs + photoMs + breathe;
+  if (slide.classList.contains('s-photo')) ms = Math.max(ms, 6000);
+  return Math.round(Math.max(ms, 4500));
+}
+
+/* ---------- Partikel emas di latar ---------- */
+const dust = (() => {
+  const c = $('#dust'), ctx = c.getContext('2d');
+  let W, H, parts = [], sparks = [];
+  const resize = () => {
+    W = innerWidth; H = innerHeight;
+    c.width = W * devicePixelRatio; c.height = H * devicePixelRatio;
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
-    parts.forEach((p) => {
-      p.vy += .18; p.vx *= .99; p.vy *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.color;
-      if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.w / 2.5, 0, 7); ctx.fill(); }
-      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.cos(p.life / 8));
-      ctx.restore();
-    });
-    parts = parts.filter((p) => p.y < innerHeight + 40 && p.life < 600);
-    raf = parts.length ? requestAnimationFrame(loop) : null;
-    if (!raf) ctx.clearRect(0, 0, innerWidth, innerHeight);
+  };
+  addEventListener('resize', resize); resize();
+  const count = reduced ? 0 : Math.min(60, Math.round((W * H) / 16000));
+  for (let i = 0; i < count; i++) parts.push(mk(true));
+  function mk(initial) {
+    return { x: Math.random() * W, y: initial ? Math.random() * H : H + 10, r: Math.random() * 1.4 + .3,
+      vy: -(Math.random() * .25 + .06), vx: (Math.random() - .5) * .12, a: Math.random() * .5 + .15, t: Math.random() * 6 };
   }
-  return { burst, rain };
+  function burst(x = W / 2, y = H / 2, n = 90) {
+    if (reduced) return;
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2, v = Math.random() * 4.5 + 1;
+      sparks.push({ x, y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v - 1.5, life: 0, max: 70 + Math.random() * 70, r: Math.random() * 1.8 + .5 });
+    }
+  }
+  (function loop() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.t += .02;
+      if (p.y < -10) Object.assign(p, mk(false));
+      ctx.globalAlpha = p.a * (.6 + .4 * Math.sin(p.t));
+      ctx.fillStyle = '#d9bb83';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+    }
+    sparks = sparks.filter((s) => s.life < s.max);
+    for (const s of sparks) {
+      s.vx *= .97; s.vy = s.vy * .97 + .045; s.x += s.vx; s.y += s.vy; s.life++;
+      ctx.globalAlpha = 1 - s.life / s.max;
+      ctx.fillStyle = s.life % 9 < 5 ? '#f3dca8' : '#c9a35f';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(loop);
+  })();
+  return { burst };
 })();
 
-/* ---- Balon & kilau ---- */
-function launchBalloons(n = 14) {
-  const box = $('#balloons');
-  const colors = ['#e8a0b4', '#e6c27a', '#b98ad3', '#f3b9c8', '#9fd0e8', '#f7d6df'];
-  for (let i = 0; i < n; i++) {
-    const b = document.createElement('div');
-    b.className = 'balloon';
-    const col = colors[i % colors.length];
-    b.style.background = col; b.style.borderBottomColor = col; b.style.color = col;
-    b.style.left = Math.random() * 92 + '%';
-    const s = .7 + Math.random() * .6;
-    b.style.width = 54 * s + 'px'; b.style.height = 68 * s + 'px';
-    b.style.animationDuration = 9 + Math.random() * 7 + 's';
-    b.style.animationDelay = Math.random() * 3 + 's';
-    b.innerHTML = '<i></i>';
-    box.appendChild(b);
-    b.addEventListener('animationend', () => b.remove());
-  }
-}
-function sparkles() {
-  const box = $('#sparkles');
-  for (let i = 0; i < 18; i++) {
-    const s = document.createElement('span');
-    s.className = 'sparkle'; s.textContent = '✦';
-    s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%';
-    s.style.animationDelay = Math.random() * 3 + 's'; s.style.fontSize = 8 + Math.random() * 10 + 'px';
-    box.appendChild(s);
-  }
-}
-
-/* ---- Kue & lilin ---- */
-function buildCake() {
-  const box = $('#candles');
-  box.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
-    const c = document.createElement('div');
-    c.className = 'candle';
-    c.innerHTML = '<span class="flame"></span>';
-    c.addEventListener('click', () => blow(c));
-    box.appendChild(c);
-  }
-  $('#wishDone').hidden = true;
-  $('#blowBtn').hidden = false;
-}
-function blow(candle) {
-  if (candle.classList.contains('out')) return;
-  candle.classList.add('out');
-  const sm = document.createElement('span'); sm.className = 'smoke'; candle.appendChild(sm);
-  if (document.querySelectorAll('.candle:not(.out)').length === 0) {
-    $('#blowBtn').hidden = true;
-    setTimeout(() => {
-      $('#wishDone').hidden = false;
-      const r = $('#cakeEl').getBoundingClientRect();
-      confetti.burst(200, r.left + r.width / 2, r.top + 40);
-      launchBalloons(10);
-    }, 500);
-  }
-}
-
-/* ---- Lightbox ---- */
-function setupLightbox() {
-  const lb = $('#lightbox');
-  document.addEventListener('click', (e) => {
-    const fig = e.target.closest('[data-full]');
-    if (!fig || !fig.querySelector('img.photo')) return;
-    $('#lbImg').src = fig.dataset.full;
-    $('#lbCap').textContent = fig.dataset.cap || '';
-    lb.hidden = false;
-  });
-  lb.addEventListener('click', (e) => { if (e.target !== $('#lbImg')) lb.hidden = true; });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') lb.hidden = true; });
-}
-
-/* ---- Musik ---- */
-/* Kotak musik "Happy Birthday" yang dimainkan langsung oleh browser.
-   Bila CONFIG.musik diisi file mp3, file itu yang dipakai. */
-function musicBox() {
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return null;
-  let ctx, master, timer, nextLoop = 0, playing = false;
-  const BEAT = 0.6;
-  const F = { G2: 98, F2: 87.31, C3: 130.81, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99 };
-  const melody = [
-    ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2],
-    ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2],
-    ['G4', .75], ['G4', .25], ['G5', 1], ['E5', 1], ['C5', 1], ['B4', 1], ['A4', 1],
-    ['F5', .75], ['F5', .25], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3],
-  ];
-  const bass = [[1, 'C3'], [4, 'G2'], [7, 'G2'], [10, 'C3'], [13, 'C3'], [16, 'F2'], [19, 'C3'], [21, 'G2'], [22, 'C3']];
-  const LOOP = 28;
-
-  function tone(freq, t, len, vol, bell = true) {
-    [[1, 'sine', 1], [2, 'sine', .35], [3.01, 'triangle', bell ? .12 : 0]].forEach(([m, type, g]) => {
-      if (!g) return;
-      const o = ctx.createOscillator(), v = ctx.createGain();
-      o.type = type; o.frequency.value = freq * m;
-      v.gain.setValueAtTime(0.0001, t);
-      v.gain.exponentialRampToValueAtTime(vol * g, t + 0.012);
-      v.gain.exponentialRampToValueAtTime(0.0001, t + len);
-      o.connect(v).connect(master); o.start(t); o.stop(t + len + 0.05);
-    });
-  }
-  function scheduleLoop(start) {
-    let beat = 0;
-    melody.forEach(([n, d]) => { tone(F[n], start + beat * BEAT, Math.max(1.4, d * BEAT * 1.6), 0.22); beat += d; });
-    bass.forEach(([b, n]) => tone(F[n], start + b * BEAT, BEAT * 2.6, 0.13, false));
-  }
-  function tick() {
-    while (nextLoop < ctx.currentTime + 1) { scheduleLoop(nextLoop); nextLoop += LOOP * BEAT; }
-  }
-  return {
-    play() {
-      if (!ctx) {
-        ctx = new AC();
-        master = ctx.createGain(); master.gain.value = 0.55;
-        const delay = ctx.createDelay(); delay.delayTime.value = 0.28;
-        const fb = ctx.createGain(); fb.gain.value = 0.22;
-        master.connect(ctx.destination); master.connect(delay); delay.connect(fb).connect(delay); fb.connect(ctx.destination);
-        nextLoop = ctx.currentTime + 0.2;
-      }
-      ctx.resume(); playing = true;
-      tick(); clearInterval(timer); timer = setInterval(tick, 250);
-    },
-    pause() { playing = false; clearInterval(timer); if (ctx) ctx.suspend(); },
-    get paused() { return !playing; },
-  };
-}
-
-function setupMusic() {
+/* ---------- Musik (YouTube, cadangan mp3) ---------- */
+const music = (() => {
   const btn = $('#musicBtn');
-  let player;
-  if (CONFIG.musik) {
-    player = $('#bgm'); player.src = CONFIG.musik;
-    player.addEventListener('error', () => { btn.hidden = true; });
-  } else {
-    player = musicBox();
-    if (!player) return null;
+  let yt = null, ready = false, want = false, playing = false, failed = false, fadeT;
+  const sync = () => {
+    btn.classList.toggle('on', playing);
+    if (playing) btn.classList.remove('nudge');
+  };
+
+  // mp3 cadangan
+  const audio = $('#bgm');
+  const useMp3 = () => {
+    failed = true;
+    if (!CONFIG.musik) { btn.hidden = true; return; }
+    audio.src = CONFIG.musik; audio.volume = CONFIG.volume / 100;
+    audio.onplay = () => { playing = true; sync(); };
+    audio.onpause = () => { playing = false; sync(); };
+    if (want) audio.play().catch(() => btn.classList.add('nudge'));
+  };
+
+  if (CONFIG.youtube) {
+    window.onYouTubeIframeAPIReady = () => {
+      yt = new YT.Player('yt', {
+        width: 200, height: 200, videoId: CONFIG.youtube,
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, loop: 1, playlist: CONFIG.youtube,
+          playsinline: 1, rel: 0, start: CONFIG.musikMulaiDetik || 0, iv_load_policy: 3 },
+        events: {
+          onReady: () => { ready = true; if (want) start(); },
+          onStateChange: (e) => {
+            if (e.data === YT.PlayerState.PLAYING) playing = true;
+            else if (e.data === YT.PlayerState.PAUSED) playing = false;
+            else if (e.data === YT.PlayerState.ENDED) { yt.seekTo(CONFIG.musikMulaiDetik || 0); yt.playVideo(); }
+            sync();
+          },
+          onError: () => { yt?.destroy?.(); useMp3(); },
+        },
+      });
+    };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = useMp3;
+    document.head.appendChild(s);
+  } else useMp3();
+
+  function fadeIn() {
+    clearInterval(fadeT);
+    let v = 0;
+    yt.setVolume(0);
+    fadeT = setInterval(() => { v += 4; yt.setVolume(Math.min(v, CONFIG.volume)); if (v >= CONFIG.volume) clearInterval(fadeT); }, 120);
   }
-  const sync = () => btn.classList.toggle('playing', !player.paused);
-  btn.hidden = false;
+  function start() {
+    if (failed) { audio.play().catch(() => btn.classList.add('nudge')); return; }
+    if (!ready) return;
+    yt.unMute(); fadeIn(); yt.playVideo();
+  }
+  // Dipanggil dari ketukan pertama (agar browser mengizinkan suara)
+  function begin() {
+    want = true; start();
+    setTimeout(() => { if (!playing && !btn.hidden) btn.classList.add('nudge'); }, 3500);
+  }
   btn.addEventListener('click', () => {
-    const r = player.paused ? player.play() : player.pause();
-    if (r && r.catch) r.catch(() => {});
-    setTimeout(sync, 50);
+    want = true;
+    if (playing) { failed ? audio.pause() : yt.pauseVideo(); }
+    else start();
   });
-  return { play() { const r = player.play(); if (r && r.catch) r.catch(() => {}); setTimeout(sync, 50); } };
+  return { begin };
+})();
+
+/* ---------- Mesin slide otomatis ---------- */
+const deck = (() => {
+  let slides = [], cur = -1, dur = 5000, elapsed = 0, last = 0;
+  let userPaused = false, held = false, autoTarget = -1;
+  const bar = $('#bar'), el = $('#deck');
+
+  function init() {
+    slides = $$('.slide', el);
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach((e) => { if (e.isIntersecting) enter(slides.indexOf(e.target)); });
+    }, { root: el, threshold: 0.6 });
+    slides.forEach((s) => io.observe(s));
+    requestAnimationFrame(tick);
+  }
+
+  function enter(i) {
+    if (i === cur || i < 0) return;
+    slides[cur]?.classList.remove('is-active');
+    cur = i; autoTarget = -1;
+    const s = slides[i];
+    s.classList.add('is-active', 'seen');
+    dur = slideDuration(s); elapsed = 0;
+    if (s.dataset.kind === 'wish') wish.reset();
+    if (s.dataset.kind === 'closing') setTimeout(() => dust.burst(innerWidth / 2, innerHeight * .35, 140), 600);
+    const num = $('.age-num', s);
+    if (num && !num.dataset.done) countUp(num);
+    $('#hudChapter').textContent = s.dataset.chapter || '';
+    $('#hudCount').textContent = `${String(i + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+    $('#prevBtn').disabled = i === 0;
+    $('#nextBtn').disabled = i === slides.length - 1;
+  }
+
+  function go(i) {
+    if (i < 0 || i >= slides.length) return;
+    autoTarget = i;
+    el.scrollTo({ top: slides[i].offsetTop, behavior: reduced ? 'auto' : 'smooth' });
+  }
+
+  function onComplete() {
+    const s = slides[cur];
+    if (s.dataset.kind === 'wish' && !wish.done) { wish.blow(); return; }
+    if (cur < slides.length - 1) go(cur + 1);
+  }
+
+  function tick(t) {
+    const dt = last ? Math.min(t - last, 100) : 0; last = t;
+    const running = !userPaused && !held && !document.hidden && autoTarget === -1 && cur >= 0 && cur < slides.length - 1;
+    if (running) {
+      elapsed += dt;
+      if (elapsed >= dur) { elapsed = dur; onComplete(); }
+    }
+    bar.style.transform = `scaleX(${cur === slides.length - 1 ? 1 : Math.min(elapsed / dur, 1)})`;
+    requestAnimationFrame(tick);
+  }
+
+  function setDuration(ms) { dur = ms; elapsed = 0; }
+  function togglePause() {
+    userPaused = !userPaused;
+    document.body.classList.toggle('paused', userPaused);
+  }
+
+  // Tahan layar = jeda sementara (seperti story)
+  let holdT;
+  el.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    holdT = setTimeout(() => { held = true; document.body.classList.add('holding'); }, 280);
+  });
+  const release = () => { clearTimeout(holdT); held = false; document.body.classList.remove('holding'); };
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => el.addEventListener(ev, release));
+  // Bila animasi gulir otomatis selesai tanpa memicu pergantian (mis. tergeser), lepaskan kunci
+  el.addEventListener('scrollend', () => { if (autoTarget !== -1 && autoTarget !== cur) autoTarget = -1; });
+  setInterval(() => { if (autoTarget !== -1 && autoTarget === cur) autoTarget = -1; }, 1500);
+
+  return { init, go, togglePause, setDuration, get cur() { return cur; }, get count() { return slides.length; } };
+})();
+
+/* ---------- Angka umur berjalan ---------- */
+function countUp(el) {
+  el.dataset.done = '1';
+  if (reduced) return;
+  const to = +el.dataset.count, t0 = performance.now() + 1300, D = 1600;
+  el.textContent = '0';
+  (function f(t) {
+    const p = Math.max(0, Math.min((t - t0) / D, 1));
+    el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(f);
+  })(performance.now());
 }
 
-/* ---- Angka umur berjalan ---- */
-function countAge() {
-  const el = $('#ageNum'); let n = 0;
-  const t = setInterval(() => { el.textContent = ++n; if (n >= CONFIG.umur) clearInterval(t); }, 45);
-}
+/* ---------- Lilin ---------- */
+const wish = {
+  done: false,
+  get el() { return $('.s-wish'); },
+  reset() {
+    this.done = false;
+    this.el.classList.remove('blown');
+  },
+  blow() {
+    if (this.done) return;
+    this.done = true;
+    this.el.classList.add('blown');
+    const r = $('#candleBtn').getBoundingClientRect();
+    setTimeout(() => dust.burst(r.left + r.width / 2, r.top + r.height * .25, 120), 350);
+    // waktu membaca doa setelah lilin ditiup
+    const after = $$('.wish-after', this.el).map((e) => e.textContent).join(' ').split(/\s+/).length;
+    deck.setDuration(2200 + (after / CONFIG.kecepatanBaca) * 60000 + 2500);
+  },
+};
 
-/* ---- Mulai ---- */
+/* ---------- Mulai ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-  document.body.classList.add('locked');
-  document.title = `Selamat Ulang Tahun, ${CONFIG.panggilan} 🎂`;
-  $('.opening-name').textContent = CONFIG.nama;
-  $('#heroName').textContent = CONFIG.nama;
-  $('#heroDate').textContent = CONFIG.tanggal || 'Hari Istimewamu';
-  $('#yearNow').textContent = new Date().getFullYear();
+  document.title = `Selamat Ulang Tahun, ${CONFIG.panggilan}`;
+  $('#coverName').textContent = CONFIG.nama;
+  $('#monogram').textContent = CONFIG.panggilan[0];
+  buildDeck();
 
-  buildMessages(); buildGallery(); buildCake();
-  attachFallbacks(); setupLightbox(); sparkles();
-  const audio = setupMusic();
-
-  $('#openBtn').addEventListener('click', function () {
-    this.classList.add('open');
-    if (audio) audio.play();
-    setTimeout(() => {
-      $('#main').hidden = false;
-      $('#opening').classList.add('gone');
-      document.body.classList.remove('locked');
-      setupReveal(); countAge();
-      confetti.burst(220); setTimeout(() => confetti.rain(140), 600);
-      launchBalloons(16);
-    }, 1500);
+  $('#beginBtn').addEventListener('click', () => {
+    music.begin();
+    document.body.classList.add('started');
+    $('#deck').hidden = false;
+    $('#hud').hidden = false;
+    setTimeout(() => $('#cover').classList.add('gone'), 50);
+    setTimeout(() => { deck.init(); dust.burst(innerWidth / 2, innerHeight * .4, 110); }, 700);
   }, { once: true });
 
-  $('#blowBtn').addEventListener('click', () => {
-    document.querySelectorAll('.candle').forEach((c, i) => setTimeout(() => blow(c), i * 220));
-  });
+  $('#candleBtn').addEventListener('click', () => wish.blow());
+  $('#replayBtn').addEventListener('click', () => deck.go(0));
+  $('#prevBtn').addEventListener('click', () => deck.go(deck.cur - 1));
+  $('#nextBtn').addEventListener('click', () => deck.go(deck.cur + 1));
+  $('#playBtn').addEventListener('click', () => deck.togglePause());
 
-  $('#replayBtn').addEventListener('click', () => {
-    confetti.burst(240); confetti.rain(160); launchBalloons(16);
-    buildCake();
-    $('#cake').scrollIntoView({ behavior: 'smooth' });
+  addEventListener('keydown', (e) => {
+    if (!document.body.classList.contains('started')) return;
+    if (['ArrowDown', 'ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); deck.go(deck.cur + 1); }
+    if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); deck.go(deck.cur - 1); }
+    if (e.key.toLowerCase() === 'p') deck.togglePause();
   });
 });

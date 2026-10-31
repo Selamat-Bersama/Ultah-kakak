@@ -3,14 +3,21 @@
 Kado digital dari Ayah, Mama, dan dua adik untuk Novi.
 
 ## Isi website
-1. **Amplop pembuka** — diketuk untuk membuka, lalu confetti & balon.
-2. **Hero** — nama, umur 29 (angka berjalan), foto utama Novi.
-3. **Kue & lilin** — ketuk lilin / tombol untuk meniup, muncul doa & confetti.
-4. **Bab Satu – Dari Ayah** — foto polaroid + surat dengan efek mengetik.
-5. **Bab Dua – Dari Mama** — foto polaroid + surat.
-6. **Bab Tiga – Dari Adik-adik** — dua surat dari masing-masing adik.
-7. **Galeri kenangan** — foto bisa diketuk untuk diperbesar.
-8. **Penutup** — tombol "Rayakan Lagi".
+Website berbentuk rangkaian slide layar penuh yang **berjalan otomatis**:
+1. **Sampul** — ketuk "Buka", musik mulai diputar.
+2. **Pembuka** — nama, umur 29, foto utama Novi.
+3. **Permohonan** — lilin; ketuk untuk meniup (atau tertiup sendiri setelah waktunya).
+4. **Bab I – Dari Ayah**, **Bab II – Dari Mama**, **Bab III – Dari Adik-adik** — foto lalu surat, satu paragraf per slide.
+5. **Bab IV – Kenangan** — galeri foto satu per satu.
+6. **Penutup** — tombol "Putar dari awal".
+
+### Slide otomatis
+- Lama tiap slide dihitung dari **jumlah kata** di slide itu (kecepatan baca `kecepatanBaca`, bawaan 150 kata/menit), ditambah waktu animasi teks, waktu melihat foto, dan jeda singkat.
+- Bisa tetap digeser/di-scroll manual, atau pakai tombol ↑ ↓. Setelah pindah manual, hitungan waktu dimulai lagi untuk slide yang sedang dibuka.
+- Tombol ⏸ untuk menjeda, atau **tahan layar** untuk berhenti sejenak.
+
+### Musik
+Musik latar diambil dari YouTube (`youtube` di CONFIG, berisi ID video). Ketika sampul diketuk, musik mulai dengan volume naik perlahan. Bila browser memblokir suara, tombol musik di kanan bawah akan berkedip — ketuk untuk memutar.
 
 ## Cara memasukkan foto
 Taruh foto di folder `foto/` dengan nama persis seperti ini (format .jpg):
@@ -31,7 +38,8 @@ Semua ada di bagian **CONFIG** paling atas file `script.js`:
 - `nama` di masing-masing adik (`'Adik Pertama'`, `'Adik Kedua'`) → ganti dengan nama asli.
 - `pesan` → isi surat (satu baris = satu paragraf).
 - `tanggal` → contoh `'12 November 2026'`.
-- Musik: secara bawaan website memutar lagu "Happy Birthday" versi kotak musik (tanpa file). Kalau ingin lagu lain, taruh mp3 di folder `musik/`, lalu isi `musik: 'musik/lagu.mp3'`.
+- `youtube` → ganti ID video untuk lagu lain; `musikMulaiDetik` untuk mulai dari detik tertentu; `musik: 'musik/lagu.mp3'` sebagai cadangan bila video tak bisa diputar.
+- `kecepatanBaca` → kecilkan angkanya bila slide terasa terlalu cepat.
 - Foto & caption bisa ditambah/dikurangi di daftar `foto` dan `galeri`.
 
 ## Online gratis dengan GitHub Pages
