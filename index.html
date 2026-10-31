@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Selamat Ulang Tahun, Novi 🎂</title>
+  <meta name="description" content="Untuk Novi Yulia Anggraini di hari ulang tahunnya yang ke-29 — dari Ayah, Mama, dan adik-adik.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ====== LAYAR PEMBUKA (AMPLOP) ====== -->
+  <section id="opening" class="opening">
+    <div class="stars"></div>
+    <div class="envelope-wrap">
+      <p class="opening-to">Untuk yang tersayang,</p>
+      <h1 class="opening-name">Novi Yulia Anggraini</h1>
+      <button id="openBtn" class="envelope" aria-label="Buka kado">
+        <span class="env-back"></span>
+        <span class="env-letter">
+          <span class="env-letter-text">Happy<br>Birthday</span>
+        </span>
+        <span class="env-front"></span>
+        <span class="env-flap"></span>
+        <span class="env-seal">❤</span>
+      </button>
+      <p class="opening-hint">Ketuk amplopnya untuk membuka</p>
+    </div>
+  </section>
+
+  <!-- ====== EFEK LATAR ====== -->
+  <canvas id="confetti"></canvas>
+  <div id="balloons" class="balloons" aria-hidden="true"></div>
+  <div id="sparkles" class="sparkles" aria-hidden="true"></div>
+
+  <!-- Tombol musik -->
+  <button id="musicBtn" class="music-btn" aria-label="Putar / jeda musik" hidden>
+    <span class="music-icon">♪</span>
+  </button>
+  <audio id="bgm" loop preload="none"></audio>
+
+  <main id="main" class="main" hidden>
+
+    <!-- ====== HERO ====== -->
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <p class="hero-date" id="heroDate"></p>
+      <h2 class="hero-title">
+        <span class="script">Selamat</span>
+        <span class="big">Ulang Tahun</span>
+      </h2>
+      <div class="age-badge"><span id="ageNum">0</span><small>tahun</small></div>
+      <h1 class="hero-name" id="heroName">Novi Yulia Anggraini</h1>
+      <div class="hero-photo-frame reveal">
+        <img class="photo" data-src="foto/novi-utama.jpg" alt="Novi" data-label="Foto utama Novi">
+      </div>
+      <p class="hero-sub reveal">Sebuah kado kecil penuh cinta,<br>dari keluarga yang selalu menyayangimu.</p>
+      <a href="#cake" class="scroll-down" aria-label="Gulir ke bawah"><span></span></a>
+    </section>
+
+    <!-- ====== KUE & LILIN ====== -->
+    <section id="cake" class="cake-section">
+      <h3 class="section-title reveal">Buat permohonan dulu, ya...</h3>
+      <p class="section-sub reveal">Pejamkan mata, ucapkan doa dalam hati,<br>lalu ketuk lilinnya untuk meniup.</p>
+      <div class="cake reveal" id="cakeEl">
+        <div class="candles" id="candles"></div>
+        <div class="tier tier-top"><span class="drip"></span></div>
+        <div class="tier tier-mid"><span class="drip"></span></div>
+        <div class="tier tier-bot"><span class="drip"></span></div>
+        <div class="plate"></div>
+      </div>
+      <button id="blowBtn" class="btn-primary reveal">🌬️ Tiup Lilinnya</button>
+      <p id="wishDone" class="wish-done" hidden>Semoga semua doamu dikabulkan Allah SWT. Aamiin 🤍</p>
+    </section>
+
+    <!-- ====== UCAPAN-UCAPAN (diisi otomatis dari script.js) ====== -->
+    <div id="messages"></div>
+
+    <!-- ====== GALERI ====== -->
+    <section class="gallery-section">
+      <p class="chapter-label reveal">Kenangan</p>
+      <h3 class="section-title reveal">Potret Perjalananmu</h3>
+      <p class="section-sub reveal">Setiap foto menyimpan cerita, dan setiap cerita ada kamu di dalamnya.</p>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
+    <!-- ====== PENUTUP ====== -->
+    <section class="closing">
+      <div class="closing-heart reveal">❤</div>
+      <h3 class="closing-title reveal">Kami Sayang Kamu, Novi</h3>
+      <p class="closing-text reveal">
+        Apa pun yang terjadi, sejauh apa pun langkahmu,<br>
+        rumah ini selalu menunggumu pulang.<br>
+        Selamat ulang tahun yang ke-29.
+      </p>
+      <p class="closing-sign reveal">— Ayah, Mama, &amp; Adik-adik</p>
+      <button id="replayBtn" class="btn-ghost reveal">🎉 Rayakan Lagi</button>
+    </section>
+
+    <footer class="footer">Dibuat dengan cinta untuk Novi · <span id="yearNow"></span></footer>
+  </main>
+
+  <!-- Lightbox foto -->
+  <div id="lightbox" class="lightbox" hidden>
+    <button class="lb-close" aria-label="Tutup">×</button>
+    <img id="lbImg" alt="">
+    <p id="lbCap"></p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
